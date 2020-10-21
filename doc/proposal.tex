@@ -1,0 +1,114 @@
+\documentclass[11pt,letterpaper]{article}
+%\usepackage{fullpage}
+\usepackage[top=2cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
+%\usepackage{lastpage}
+\usepackage{enumerate}
+\usepackage{subcaption}
+%\usepackage{fancyhdr}
+%\usepackage{mathrsfs}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{comment}
+\lstset{
+   breaklines=true,
+   basicstyle=\ttfamily}
+\usepackage{spverbatim}
+\usepackage{pdfpages}
+\usepackage{tikz}
+\hypersetup{%
+  colorlinks=true,
+  linkcolor=blue,
+  linkbordercolor={0 0 1}
+} 
+\usepackage{enumitem}
+\usepackage{tikz}
+
+\lstdefinestyle{Python}{
+    language        = Python,
+    frame           = lines, 
+    basicstyle      = \footnotesize,
+    keywordstyle    = \color{blue},
+    stringstyle     = \color{green},
+    commentstyle    = \color{red}\ttfamily
+}
+
+\setlength{\parindent}{0.0in}
+\setlength{\parskip}{0.05in}
+
+% Edit these as appropriate
+\newcommand\course{ISyE 601}
+\newcommand\hwnumber{3}                  % <-- homework number
+\newcommand\NetIDa{}           % <-- NetID of person #1
+\newcommand\NetIDb{}           % <-- NetID of person #2 (Comment this line out for problem sets)
+
+%\pagestyle{fancyplain}
+%\headheight 35pt
+%\lhead{\NetIDa}
+%\lhead{\NetIDa\\\NetIDb}                 % <-- Comment this line out for problem sets (make sure you are person #1)
+%\chead{\textbf{\Large \course \text{ }Project Submission}}
+%\rhead{\course \\ \today}
+%\lfoot{}
+%\cfoot{}
+%\rfoot{\small\thepage}
+%\headsep 1.5em
+
+
+\begin{document}
+\title{CSE 532 Project Proposal: Predicting soccer match result using ML}
+\date{}
+\author{Akhilesh Soni, soni6@wisc.edu}
+\maketitle
+\paragraph{}\text{}\\
+Github repository: \href{https://github.com/soniakhilesh/soccer-analytics}{https://github.com/soniakhilesh/soccer-analytics} \\
+Dataset: \href{https://www.kaggle.com/saife245/english-premier-league}{https://www.kaggle.com/saife245/english-premier-league}
+\paragraph{Introduction}\text{}\\
+Soccer is a game of coordination. Each side consists of 11 players with 3 allowed substitutions. A game is played in two intervals of 45 minutes each with a 15 minutes break in between. The team which scores more goals is declared as the winner. Each goal, more often than not, involves a highly complex interaction among players amidst uncertainty of the situation. Sometimes goal results from individual brilliance and sometimes from the well coordinated passes among players of the attacking team. Of course, each good attack does not result in a goal and often there are goals scored against the run of play. However the game stats do give a sense of which team might be dominating the game and is more likely to win. We aim to study if we can predict result of the match from the game stats.
+In this project, we keep our focus on English Premier League or mostly refereed to as EPL. In a typical match of EPL, one team hosts another team. This means that each match involves one team playing ``Home" and the other team play ``Away" game. Each season of EPL runs from August to  May of following year. There are 20 teams and each team plays 38 games: 19 home and 19 away. 
+
+\paragraph{Dataset}\text{}\\
+EPL dataset for all matches over the last 20 seasons is available 
+\href{https://www.kaggle.com/saife245/english-premier-league}{here}. The data along with final result (Win/Loss/Draw) consists of statistics like shots taken by home and away team, yellow or red cards conceded, score at half time,possession, number of off-sides, number of free kicks conceded, etc. These stats are a good representation of the match summary and hence can be used to predict the likelihood of home team winning. We also have standings of each team over the last 20 seasons in EPL. This will be a good representative of the overall strength of the team. The dataset also consists of betting odds but we don't plan to use them in our model. There are roughly 30 features which consists of goals, off-sides, fouls, free kicks, cards, shots, corners etc. Each season of EPL consists of 380 games. We plan to use approximately 15-20 seasons of data which would be equivalent to around 6000 data points roughly. Each game comes with half and full time stats and target label being whether home team won or not.
+
+\paragraph{Project Scope}\text{}\\
+The goal of this project is to  predict the match outcome if the features listed above were known. We aim to find the probability of home team winning a match. Our model will input the features listed above. Of course, in real world application, those features are not known beforehand. In fact, a predictive model can be built to predict those features.  However that does not lie in the scope of our current project. For our purpose, we plan to use around 70\% of the data (11-15 seasons) to train and the remaining data to test and compare our models performance. We assume that game statistics for test data are known to us and our goal is to decide whether home team wins, draws, or loses.
+
+Having said that, we also plan to train our model with half game time statistics and predict likelihood of home team winning the game. Note that motivation for doing this is that it is slightly unrealistic to predict the game statistics with high accuracy beforehand. Hence, having a model which can predict whether home team will win or not half way into the game is more useful for real world application.
+\subsubsection*{Algorithms}
+We plan to make use of following algorithms and compare their performance on the testing dataset.
+\begin{enumerate}
+    \item k-nearest neighbors: Tuning how many neighbors (k) do we need
+    \item Kernel SVM: Deciding type of kernel and penalty parameters
+    \item Neural Networks: Experimenting with different number of layers
+\end{enumerate}
+We plan to run two types of experiments and model training:
+\begin{itemize}
+    \item Full game stats: We train our model on the entire match statistics available and then test it on 3-5 new seasons. Our testing is based on inputting the game statistics summary and model predicts whether home team will win or not.
+    \item Half game stats: We train our model with the first half game data over the training set. We then make predictions for the seasons data set aside by only using the first half's game data. 
+\end{itemize}
+
+\paragraph{Timeline}\text{}\\
+The roughly proposed timeline of the project is given in Table \ref{tab:timeline}\\
+Total project duration is Oct 22-Dec 12: 8 weeks
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{l|c}
+         \hline
+        & Description \\
+         \hline
+        Week 0 & Identify topic, find dataset, and write project proposal--\textbf{Oct 22}\\
+        Week 1,2 & Data cleaning and feature engineering, Dimensionality reduction\\
+        Week 3 & Build a pipeline and Implement k-means and analyze results-- \textbf{Nov 17}\\
+        Week 4 & Implement SVM and do Cross Validation \\
+        Week 5 & Implement Neural networks and do CV--\textbf{Dec 1}\\
+        Week 6 & Start documenting, Analyse results, compare performance of models (error rates) \\
+        Week 7 & Get insights into important features, discuss, and document the report--\textbf{Dec 12}\\
+        \hline
+    \end{tabular}
+    \caption{Project Timeline}
+    \label{tab:timeline}
+\end{table}
+\end{document}
