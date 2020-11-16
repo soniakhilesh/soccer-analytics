@@ -12,7 +12,7 @@ We extracted the folllowing features from the data:
 1. Strength of a team: We measure strength of the team by it's position (standing) in the last year's leagure. Every season, bottom three teams in the table are relegated from the next year's league and three new teams enter the league. Hence, sometimes it happens that we do not have information of team's performance in the last season's league. In such cases, we assign a position of 30 to the teams which did not play in the league in last season.
 2. Current form: Current form of the home and away teams: Each season of EPL goes for almost 8-9 months. Hence, players go through different phases of performance and injuries which also affects the team's performance as a whole. To account for this behavior, we measure current form of the team by calculating exponential decay function of number of goals scored in the last 5 games with he most recent game getting the highest weight. 
 
-$Form=\sum_{i=1}^5ST*(\exp^{-\alphai})$ where ST stands for shots on target.
+$Form=\sum_{i=1}^5ST*(\exp^{-\alpha i})$ where ST stands for shots on target.
 
 We believe that shots on target is a better measure of performance than goals as it's a better measure of team's attacking tactics than goals. 
 
