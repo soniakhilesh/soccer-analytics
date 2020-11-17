@@ -1,2 +1,5 @@
 *.DS_Store
 *.idea
+data/archive/Datasets/final_dataset.csv
+*.ipynb_checkpoints/
+*/__pycache__
