@@ -19,9 +19,9 @@
 \usepackage{amsfonts}       % blackboard math symbols
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
+\usepackage{multicol}
 
-\title{Formatting Instructions For NeurIPS 2020}
-
+\title{Soccer Analytics: Match result prediction in English Premiere League}
 % The \author macro works with any number of authors. There are two commands
 % used to separate the names and addresses of multiple authors: \And and \AND.
 %
@@ -29,6 +29,7 @@
 % lines. Using \AND forces a line break at that point. So, if LaTeX puts 3 of 4
 % authors names on the first line, and the last on the second line, try using
 % \AND instead of \And before the third author name.
+
 
 \author{%
   David S.~Hippocampus\thanks{Use footnote for providing further information
@@ -66,18 +67,202 @@
 \maketitle
 
 \begin{abstract}
-  The abstract paragraph should be indented \nicefrac{1}{2}~inch (3~picas) on
-  both the left- and right-hand margins. Use 10~point type, with a vertical
-  spacing (leading) of 11~points.  The word \textbf{Abstract} must be centered,
-  bold, and in point size 12. Two line spaces precede the abstract. The abstract
-  must be limited to one paragraph.
+	We predict the match results of soccer matches in English Premier League using Machine Learning algorithms. We create features using the historic data that incorporates overall strength and current form of the team.  We use one vs rest strategy to handle multiple classes (Win, Draw, Lose). We train three classifiers: k nearest neighbors (KNN), Support vector Machines (SVM), and Neural Network (NN). We obtain the best error rate of 58.4\% both with SVM and NN when using a subset of most important features identified through Random Forest.
 \end{abstract}
 
+\section{Introduction}
+Soccer is a game of coordination. Each side consists of 11 players with 3 allowed substitutions. A game is played in two intervals of 45 minutes each with a 15 minutes break in between. The team which scores more goals is declared as the winner. Each goal, more often than not, involves a highly complex interaction among players amidst uncertainty of the situation. Sometimes goal results from individual brilliance and sometimes from the well coordinated passes among players of the attacking team. Of course, each good attack does not result in a goal and often there are goals scored against the run of play. However the game stats do give a sense of which team might be dominating the game and is more likely to win. We aim to study if we can predict result of the match from the historic game stats of the two teams against themselves and against other teams.
+In this project, we keep our focus on English Premier League or mostly refereed to as EPL. In a typical match of EPL, one team hosts another team. This means that each match involves one team playing ``Home" and the other team play ``Away" game. Each season of EPL runs from August to  May of following year. There are 20 teams and each team plays 38 games: 19 home and 19 away. 
+\paragraph{Dataset}
+EPL dataset for all matches over the last 20 seasons is available 
+\href{https://www.kaggle.com/saife245/english-premier-league}{here} \cite{data} . The data along with final result (Win/Loss/Draw) consists of statistics like shots taken by home and away team, yellow or red cards conceded, score at half time,possession, number of off-sides, number of free kicks conceded, etc. These stats are a good representation of the match summary and hence can be used to predict the likelihood of home team winning, drawing, or losing. We also have standings of each team over the last 20 seasons in EPL. This is a good representative of the overall strength of the team over the last few seasons. 
+% The dataset also consists of betting odds but we don't plan to use them in our model. 
+There are roughly 30 features which consists of goals, off-sides, fouls, free kicks, cards, shots, corners etc. Each season of EPL consists of 380 games. We use 20 seasons of data which is equivalent to around 6000 data points roughly. Target label in our dataset is whether home team won, drew or lost.
+
+\paragraph{Project Scope}
+Our goal is to  predict the match outcome using the historic statistics of the two teams playing. In particular, we consider the recent performance of the home and away teams in last 3 games at home and away venues against other teams in the league. We also consider the history of encounter of the playing teams against each other and their match stats in those encounters. To account for the overall strength of the team, we also include position on which the team finished the previous season. 
+
+% Our goal is to find the probability of home team winning a match. For our purpose, we plan to use around 15 seasons of data to train and predict the outcome of the next season and thus predicting the league winner. We will do this on a rolling basis and do predictions for 5 seasons i.e. use the data for the last 15 seasons to train and predict next season and repeat this 5 times on a rolling basis to evaluate model accuracy. A team is awarded 3 point for a win, 1 for a draw. and none for losing. This well help in ranking the teams at end of the league.\\
+% We also plan to train our model with half game time statistics along with the historic data and then predict likelihood of home team winning the game. 
+This model can then be used in real time for getting the odds of home team winning the game before the game has started. As there are 3 possible outcomes, a random classifier will have an accuracy of 33 \%. 
+
+\section{Data Engineering}
+We extracted following features from the data:
+\begin{itemize}
+	\item Strength of a team: We measure strength of the team by it's position (standing) in the last year's league. Every season, top 17 teams are qualified for next year's league and bottom three teams in the table are relegated, thus giving a chance to three new teams to enter the league. Hence, sometimes it happens that we do not have information of team's performance in the last season's league. In such cases, we assign a position of 30 to the teams which did not play the league last season i.e. they didn't qualify.
+	
+	\item Current form: Current form of the home and away teams: Each season of EPL goes for almost 8-9 months. Hence, players go through different phases of performance and injuries which also affects the team's performance as a whole. To account for this behavior, we measure current form of the team by calculating exponential decay function of number of shots on target and goals (both scored and conceded) in the last 5 games with the most recent game getting the highest weight.
+	\[Form=\sum_{i=1}^5(STD+2*GD)e^{-\alpha i}\]
+	% We refine our form feature include goals as well as shots on target.
+	% $Form=\sum_{i=1}^5(STD+2*GD)e^{-\alpha i}$. 
+	Here STD stands for shots on target difference between the home and away team and GD stands for goal difference between home team and the away team. We give twice the weight to goal difference compared to shots on target difference as goal scored have a bigger impact on the game outcome team morale.
+	We used $\alpha=0.6$ in the Form expression. We experimented with different games to look back in future i.e. 3, 5, 8, 12. We observed the best performance for linear SVM using 5 games to to calculate form. Hence, we use 5 games through out the other models as well to calculate form feature.
+	% This is based on domain knowledge that recent games carry more effect on team's morale and hence performance in next game compared to games they play 2 weeks back.
+	% We believe that shots on target is a better measure of performance than goals as it's a better measure of team's attacking tactics than goals.
+	
+	\item Previous encounters: If Team A (Home) is facing Team B, we  account for all previous encounters of those teams. In particular, we give a point of +1 to Team A for a win in the past, 0 for a draw, and -1 for a loss. We then take an average of these scores.
+	Recent performance: To account for team's recent performance, we also consider an average of the following stats over the last three games.
+	
+	\begin{itemize}
+		\begin{minipage}{0.5\linewidth}
+			\item FTHG = Full Time Home Team Goals
+			\item FTAG = Full Time Away Team Goals
+			\item FTR = Full Time Result
+			\item HTHG = Half Time Home Team Goals
+			\item HTAG = Half Time Away Team Goals
+			\item HTR = Half Time Result 
+			\item HS = Home Team Shots
+			\item AS = Away Team Shots
+			\item HST = Home Team Shots on Target
+			\item AST = Away Team Shots on Target
+		\end{minipage}
+		\begin{minipage}{0.5\linewidth}
+			\item HHW = Home Team Hit Woodwork
+			\item AHW = Away Team Hit Woodwork
+			\item HC = Home Team Corners
+			\item AC = Away Team Corners
+			\item HF = Home Team Fouls Committed
+			\item AF = Away Team Fouls Committed
+			\item HY = Home Team Yellow Cards
+			\item AY = Away Team Yellow Cards
+			\item HR = Home Team Red Cards
+			\item AR = Away Team Red Cards
+		\end{minipage}
+	\end{itemize}
+	
+	
+	Note that we calculate this separately for a home or an away game. This implies that if a team is playing a home game, we only consider last 3 home games to measure the recent performance of team in home games. Similarly for an away game, we only consider last three away games of the team.
+	We converted the targets (Win, Loss, Draw) to numerical features which are equivalent to +1,0,-1 respectively.
+	% and use OnevsRest strategy to handle multi-class classification. We use the sklearn.multiclass tools to handle this.
+	
+\end{itemize}
+
+\section{Methods}
+We use the following algorithms for prediction and tune the necessary hyper parameters to get best in sample accuracy.
+\begin{enumerate}
+	\item k-nearest neighbors: Parameters: Number of neighbors ($k$) and distance norm ($p$)
+	\item Kernel SVM: Parameters: Kernel type (linear, polynomial, RBF) and penalty parameter
+	\item Neural Networks: Parameters: Number of hidden layer, nodes in hidden layer, activation function
+\end{enumerate}
+Note that we make use of python libraries to implement the above mentioned models. In particular, we use sklearn for implementing KNN and SVM and keras to implement Neural Network.
+
+
+We use GridSearchCV method in sklearn to perform hyper parameter tuning for KNN and SVM models. For neural network, we manually experiment with different network structure. In the hyper parameter tuning, we select best parameters using cross validation in our training data set to avoid overfitting and select the hyper parameters which give best accuracy on validation sets. Accuracy is the ratio of correctly labeled observations to the total number of observations. 
+
+
+As we are dealing with multi class problem, we use a OneVsRest methodology to handle multiple classes (Win,Draw,Loss). The multi-class dataset is split into multiple binary classification problems. A binary classifier is then trained on each binary classification problem and predictions are made using the model that is the most confident. We make use of \textit{sklearn.multiclass} class to implement this.
+We consider a split of 70:30 for training-testing in the chronological order i.e. the most recent data is reserved for model testing purpose.
+
+\section{Results}
+\subsection{KNN} In k-nearest neighbor, we consider the following parameters choice:
+\begin{itemize}
+	\item Number of neighbors, $k$: \{20,50,200,500\}
+	\item Norm, $p$: \{1,2\}
+\end{itemize}
+It took 54 seconds for hyper parameter tuning with $k=200$ and $p=1$ being the best choice parameters. With these choice of parameters, we got a testing accuracy of 54.8\%
+
+\subsection{SVM} For support vector machine, we consider the following choice of paramters:
+\begin{itemize}
+	\item Kernel, $K$: \{linear, polynomial, radial basis function\}
+	\item Penalty, $C$: \{0.1,1,10\}
+\end{itemize}
+
+It took 547.07 to train and find the best set of parameters. We got the best results using a linear kernel and penalty parameter value to be 10. Out of sample accuracy with this choice of parameters was found to be 58.2\% as shown in Table \ref{tab:svm}. We also observe that for high penalty and non linear kernel functions, SVM can overfit.
+% With RBF the model over-fitted and we got better in-sample accuracy but worse out of sample accuracy. 
+
+\begin{table}
+	\caption{SVM results}
+	\label{tab:svm}
+	\centering
+	\begin{tabular}{c|c}
+	\toprule
+	\textbf{Parameters} & \textbf{Testing accuracy \%} \\
+	\midrule
+	$C=$0.1, $K=$ \textit{linear} & 52.9 \\
+	$C=$0.1, $K=$ \textit{poly} & 55.0\\
+	$C=$0.1, $K=$ \textit{rbf} & 52.1\\
+	$C=$1, $K=$ \textit{linear} & 55.5\\
+	$C=$1, $K=$ \textit{poly} & 51.4\\
+	$C=$1, $K=$ \textit{rbf} & 54.1\\
+	$C=$10, $K=$ \textit{linear} &\textbf{ 55.8}\\
+	$C=$10, $K=$ \textit{poly} & 44.8\\
+	$C=$10, $K=$ \textit{rbf} & 48.5\\
+	\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Neural Network}
+
+We consider the following network choices for out network:
+\begin{itemize}
+	\item Number of hidden layers: \{5, 10, 20, 40\}
+	\item Number of nodes in each hidden layer: \{3, 5, 10\} 
+\end{itemize}
+For our dataset, many of the points (e.g. a top team vs a bottom team) would be easier to predict. Hence, we use hinge loss. However, the conventional hinge loss is applicable to binary class problems while our data is a multi-class. Thus, we make use of categorical or multi-class hinge loss \cite{categorical_hinge} which lets us exploit the power of hinge loss in multi-class data. We kept number of epochs (passes through the data) to be 100. With a very wide network, e.g. 20 layers, we over fit the data and get poor testing accuracy. 5 layered network with 20 nodes in each hidden layer gave the best accuracy of 56.4\%.
+
+\begin{table}
+	\caption{Neural Network results}
+	\label{tab:nn}
+	\centering
+	\begin{tabular}{l|c}
+	\toprule
+	\textbf{Parameters} & \textbf{Testing accuracy \%} \\
+	\midrule
+	\# Layers= 3 ,\# Nodes=20, ReLU  & 52.1\\
+	\# Layers= 5 ,\# Nodes=20, ReLU  & \textbf{56.4} \\
+	\# Layers= 10 ,\# Nodes=20, ReLU  & 27.2\\
+	\# Layers= 3 ,\# Nodes=20, SoftMax  & 48.1\\
+	\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsubsection*{Reduced features using PCA and Random Forest}
+We first do PCA and consider the top 20 dimensions. We then test performance of KNN, SVM and Neural Network on this reduced dataset and got testing accuracy of 51.4\%, 50.7\%, and 44.1\%.
+
+
+Next, we also identify the top 10 features using Random Forest classifier. Random Forest had a testing accuracy of 55.1\%. Our goal is to use random forest forest just to identify the most important features in the data.  We consider the following 10 top features:
+
+
+\begin{itemize}
+	\begin{minipage}{0.5\linewidth}
+		\item Average home team shots 
+		\item Average away team shots 
+		\item Average shots conceded by away team 
+		\item Average shots conceded by home team 
+		\item Average full time result for away team 
+	\end{minipage}
+	\begin{minipage}{0.5\linewidth}
+		\item Home Form
+		\item Away Form
+		\item Home Previous Position
+		\item Away Previous Position
+		\item Win probability based on previous encounters
+	\end{minipage}
+\end{itemize}
+
+The average number of shots here are based on last three home or away matches.
+
+We then test the performance of SVM and Neural networks on these features. We got an accuracy of \textbf{58.4\%} with neural Networks with these 10 features and \textbf{58.4\%} with linear SVM. In both cases, 5 layered neural network with 5 nodes in each hidden layer gave the best accuracy.  For SVM, we got the best results using a linear SVM with a penalty of 10 for each misclassified point.
+
+\section{Discussion and Future Directions}
+We obtain the best model performance  (58.4\%) when using linear SVM and Neural network and using top 10 features obtained from Random Forests. KNN on the same shrink features data gave an accuracy of 56.3\%. Surprisingly, we did not obtain significant improvement over KNN. One of the reasons might be the fact that KNN uses 200 neighbors for the optimal choice of number of neighbors. Neural network and linear SVM perform almost equivalently.
+It might be the case that our features are unable to capture the underlying relationship of the data and hence we are unable to improve to accuracy anymore. Nonetheless, 58.4\% accuracy is still significant and at par with the existing state of the art methods \cite{sunilThesis}. 
+
+
+Although our model succeeds  when compared to a random choice model (33\%), we still believe there is room for improvement. In particular, more sophisticated features which incorporate team strength based on the funds spent each season to buy new players, player statistics (or form), etc should be elemental in improving model performance. We did not have direct access to such information but it would be interesting to explore this direction. 
+As conventional PCA for dimensional reduction did not help in improving the model performance, one can also consider performing supervised PCA \cite{supervisedPCA}  to identify most important features in the data and then test model performance.
+
+Our code can be found on the project website:
+\begin{center}
+	\url{https://github.com/soniakhilesh/soccer-analytics}
+\end{center}
+
+\iffalse
 \section{Submission of papers to NeurIPS 2020}
 
 NeurIPS requires electronic submissions.  The electronic submission site is
 \begin{center}
-  \url{https://cmt3.research.microsoft.com/NeurIPS2020/}
+  \url{https://github.com/soniakhilesh/soccer-analytics}
 \end{center}
 
 Please read the instructions below carefully and follow them faithfully.
@@ -403,5 +588,22 @@ TELOS/Springer--Verlag.
 [3] Hasselmo, M.E., Schnell, E.\ \& Barkai, E.\ (1995) Dynamics of learning and
 recall at excitatory recurrent synapses and cholinergic modulation in rat
 hippocampal region CA3. {\it Journal of Neuroscience} {\bf 15}(7):5249-5262.
+\fi
+\section*{Acknowledgment}
+We would like to thank course instructor Prof. Rob Nowak for insightful discussion in the early phase of this project. We also thanks TAs Rahul Parhi  and Jianwei Ke for their guidance during the course which was quite helpful in the success of this project.
 
+\begin{thebibliography}{}
+	\bibitem{data} English Premier League dataset, \href{https://www.kaggle.com/saife245/english-premier-league}{https://www.kaggle.com/saife245/english-premier-league}
+	
+	\bibitem{categorical_hinge} J. Weston, C. Watkins
+	Support vector machines for multiclass pattern recognition
+	The Seventh European Symposium on Artificial Neural Networks (1999), pp. 219-224.
+	
+	\bibitem{sunilThesis} S. Srinivas, Soccer Analytics and its future (2019). Creative Components. 254.
+	
+	\bibitem {supervisedPCA} Supervised PCA: A. Ritchie, L. Balzano, C. Scott,  Supervised PCA: A Multiobjective Approach (2020). \href{https://arxiv.org/abs/2011.05309}{https://arxiv.org/abs/2011.05309}
+	
+	
+	
+\end{thebibliography}
 \end{document}
